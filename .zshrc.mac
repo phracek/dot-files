@@ -1,0 +1,238 @@
+set +x
+# User specific aliases and functions
+
+gfm() {
+  local tmp_opt=""
+  [ -n "$2" ] && tmp_opt="--start-number $2"
+  git format-patch $tmp_opt "$1"^.."$1"
+  return $?
+}
+
+glfm() {
+  local nn=1
+  while [[ "$1" != "" ]]; do
+    gfm "$1" $nn || echo "shit $1" 
+    nn=$(( nn +1 ))
+    shift
+  done
+}
+
+current_rpmbuild() {
+    if [ -z "$1" ]; then
+        echo "Specify currect directory"
+        return
+    fi
+    if [ -z "$2" ]; then
+        if [ $(ls *.spec | wc -l) -eq 1 ]; then
+            SPEC=$(ls *.spec)
+        else
+            echo "Specify SPEC file"
+        fi
+
+    else
+        SPEC=$2
+    fi
+    echo "$SPEC"
+    echo "$1"
+    rpmbuild --define "_sourcedir $1" -bs $SPEC
+}
+
+spec() {
+    if [ $(ls *.spec | wc -l) -eq 1 ]; then
+        vim *.spec
+    else
+        echo "More spec files"
+    fi
+}
+
+vd() {
+    if [ $(ls Dockerfile | wc -l) -eq 1 ]; then
+        vim Dockerfile
+    else
+        echo "More Dockerfile files"
+    fi
+}
+
+copy_kodi() {
+    IP="192.168.1.222"
+    if [[ "$#" -eq 0 ]]; then
+        echo "directory and files"
+        return
+    fi
+	directory=$1
+    echo "Directory: $directory"
+	shift
+	for f in $@; do
+        echo "File to copy $f to $IP"
+		scp $f root@$IP:/var/media/Elements/$directory/$f
+		if [ $? -eq 0 ]; then
+			rm -f $f
+		fi
+	done
+}
+
+docker_tag() {
+    IMAGE_ID=$1
+    NEW_TAG=$2
+    docker tag $1 $2
+}
+
+
+clone_fedora () {
+    PKG=$1
+    cd /home/phracek/work/Fedora
+    fedpkg clone $PKG
+    cd $PKG
+}
+
+tag_id3 () {
+    ARTIST=$1
+    ALBUM=$2
+    id3v2 -a $ARTIST -A "$ARTIST-$ALBUM" *
+}
+
+build_idea_copr() {
+    SRPM=$1
+    if [[ -z "$SRPM" ]]; then
+        echo "Specify path to SRPM."
+        exit 0
+    fi
+    build_copr "intellij-idea-community" "$SRPM"
+}
+
+check_srpm() {
+    SRPM=$1
+    if [[ -z "$SRPM" ]]; then
+        echo "Specify path to SRPM."
+        exit 0
+    fi
+}
+copr_pycharm_build() {
+    SRPM=$1
+    check_srpm $SRPM
+    build_copr "PyCharm" "$SRPM"
+}
+copr_mtf_devel_build() {
+    SRPM=$1
+    check_srpm $SRPM
+    build_copr "meta-test-family-devel" "$SRPM"
+}
+
+copr_mtf_build() {
+    SRPM=$1
+    check_srpm $SRPM
+    build_copr "meta-test-family" "$SRPM"
+}
+
+copr_colin_build() {
+    SRPM=$1
+    check_srpm $SRPM
+    build_copr "colin" "$SRPM"
+}
+
+copy_to_fedorapeople() {
+    FILE=$1
+    if [[ -z "$FILE" ]]; then
+        echo "Specify file to copy"
+        exit 0
+    fi
+    scp $FILE phracek@fedorapeople.org:~/public_html/
+}
+
+build_copr() {
+    copr-cli build "$1" "$2"
+}
+
+function gru() {
+    BRANCH=$1
+    if [[ -z "$BRANCH" ]]; then
+        echo "specify branch"
+        exit 0
+    fi
+    git rebase upstream/$BRANCH
+}
+function grh() {
+    NUMBER=$1
+    if [[ -z "$NUMBER" ]]; then
+        echo "specify HEAD number"
+        return 1
+    fi
+    git rebase -i HEAD~$NUMBER
+}
+
+git_changelog() {
+    SOURCE=$1
+    git log $SOURCE...HEAD --pretty=format:'- %s (%ae)' | grep -v Merge
+}
+
+upload_mtf_pypi() {
+    SOURCE=$1
+    twine upload --repository testpypi $SOURCE
+    twine upload $SOURCE
+}
+
+
+login_openshift_registry() {
+    TOKEN=$1
+    if [[ -z "$TOKEN" ]]; then
+        echo "Specify TOKEN"
+        return 1
+    fi
+    sudo docker login -p $TOKEN -u unused docker-registry.engineering.redhat.com
+    oc login --token $TOKEN internal-registry.host.prod.eng.rdu2.redhat.com:8443
+}
+
+export PYTHONDONTWRITEBYTECODE="fuck-yes"
+export LDFLAGS="-L/usr/local/opt/zlib/lib"
+export CPPFLAGS="-I/usr/local/opt/zlib/include"
+
+export PATH="/Users/phracek/.pyenv:$PATH"
+eval "$(pyenv init -)"
+
+export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
+
+GIT_PROMPT_ONLY_IN_REPO=1
+if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
+  __GIT_PROMPT_DIR=$(brew --prefix)/opt/bash-git-prompt/share
+  source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
+fi
+
+di_run_delete() {
+	docker rm -f $(docker ps -aq)
+}
+
+di_delete() {
+	docker rmi -f $(docker images -q)
+}
+
+gfu() {
+	git fetch upstream
+	git rebase upstream/master
+}
+# User specific aliases and functions
+alias sen="sen --yolo"
+alias prg="cd ~/work/programming"
+alias gs="git status"
+alias gpull="git pull --rebase"
+alias gpush="git push"
+alias gpo="git push -f origin "
+alias grc="git rebase --continue"
+alias gl="git log"
+alias fedora="cd ~/work/Fedora"
+alias fmodules="cd ~/work/FedoraModules"
+alias fdocker="cd ~/work/FedoraDocker"
+alias rhel="cd ~/work/RHEL"
+alias ga="git add -p"
+alias gco="git checkout"
+alias gcob="git checkout -b "
+alias gcom="git checkout master"
+alias di="docker images"
+alias greset="git reset HEAD"
+alias ci="cd ~/work/container-images"
+alias gammend="git ci --amend"
+alias specbump="rpmdev-bumpspec *.spec"
+alias work="cd ~/work"
+alias trigger_commit='git commit --allow-empty -m "trigger commit"'
+alias p36="pyenv global 3.6.8"
+alias p37="pyenv global 3.7.2"
+

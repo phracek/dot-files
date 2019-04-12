@@ -1,0 +1,31 @@
+---
+- name: Recipe for how to build deploy image
+  hosts: localhost
+
+  tasks:
+  - name: Install all packages needed for Fedora workstation.
+    dnf:
+      name:
+      - ansible
+      - origin-clients
+      - podman
+      - buildah
+      - zsh
+      - gcc
+      - make
+      - git
+      - python-devel
+      - terminator  
+      - python3-pip
+      - kernel-headers
+      - kernel-devel
+      - gnome-tweak-tool
+      - autoconf
+      - dkms
+        #- kernel-headers-`uname -r`
+      state: present
+  - name: Install zsh
+    shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+  - name: Install ansible-bender headers
+    pip:
+      name: git+https://github.com/ansible-community/ansible-bender
