@@ -29,3 +29,7 @@
   - name: Install ansible-bender headers
     pip:
       name: git+https://github.com/ansible-community/ansible-bender
+  - name: Create directory for work
+    file:
+      state: directory
+      path: $HOME/programming
