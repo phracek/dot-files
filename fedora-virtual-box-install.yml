@@ -22,6 +22,8 @@
       - gnome-tweak-tool
       - autoconf
       - dkms
+      - docker-common
+      - util-linux-user
       state: present
   - name: Get kernel version from Fedora Linux Workstation
     command: uname -r
