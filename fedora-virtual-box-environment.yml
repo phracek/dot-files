@@ -1,0 +1,22 @@
+---
+- name: Recipe for how to build deploy image
+  hosts: localhost
+
+  tasks:
+  - name: Get zsh
+    get_url:
+      url: https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh
+      dest: ~/install.sh
+
+  - name: Check if Oh-my-zsh exists
+    stat: path=~/.oh-my-zsh
+    register: ohmyzsh
+
+  - name: Install Oh-my-zsh
+    shell: bash ~/install.sh
+    when: not ohmyzsh.stat.isdir 
+
+  - name: Install ansible-bender headers
+    pip:
+      name: git+https://github.com/ansible-community/ansible-bender
+      executable: pip3

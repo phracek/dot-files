@@ -22,14 +22,13 @@
       - gnome-tweak-tool
       - autoconf
       - dkms
-        #- kernel-headers-`uname -r`
       state: present
-  - name: Install zsh
-    shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-  - name: Install ansible-bender headers
-    pip:
-      name: git+https://github.com/ansible-community/ansible-bender
-  - name: Create directory for work
-    file:
-      state: directory
-      path: $HOME/programming
+  - name: Get kernel version from Fedora Linux Workstation
+    command: uname -r
+    register: uname
+
+  - name: Install kernel headers for Virtual Box Guest additions
+    dnf:
+      name:
+      - kernel-devel-{{ uname.stdout }}
+      state: present
