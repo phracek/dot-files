@@ -2,18 +2,21 @@
 - name: Recipe for how to build deploy image
   hosts: localhost
 
+  vars:
+    local_home: "{{ lookup('env','HOME') }}"
+
   tasks:
   - name: Get zsh
     get_url:
       url: https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh
-      dest: ~/install.sh
+      dest: "{{ local_home }}/install.sh"
 
   - name: Check if Oh-my-zsh exists
-    stat: path=~/.oh-my-zsh
+    stat: path={{ local_home }}/.oh-my-zsh
     register: ohmyzsh
 
   - name: Install Oh-my-zsh
-    shell: bash ~/install.sh
+    command: bash {{ local_home }}/install.sh
     when: not ohmyzsh.stat.isdir 
 
   - name: Install ansible-bender headers
