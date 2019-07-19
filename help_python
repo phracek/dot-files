@@ -1,0 +1,59 @@
+
+class RunCommandType(Enum):
+    sandcastle = "sandcastle"
+    local = "local"
+
+RUN_COMMAND_HANDLER_MAPPING: Dict[RunCommandType, Type["CommandHandler"]] = {}
+
+
+def add_run_command(kls: Type["CommandHandler"]):
+    RUN_COMMAND_HANDLER_MAPPING[kls.name] = kls
+    return kls
+
+
+class CommandHandler:
+    """Generic interface to handle different run_commands"""
+
+    name: RunCommandType
+
+    def __init__(self, local_project: LocalProject, config: Config):
+        self.local_project = local_project
+        self.config = config
+
+    def run_command(self, command: List[str], return_output: bool = True):
+        raise NotImplementedError("This should be implemented")
+
+    def clean(self):
+        """ clean up the mess after we're done """
+        logger.info("nothing to clean")
+
+
+@add_run_command
+class LocalCommandHandler(CommandHandler):
+    name = RunCommandType.local
+--------------------------
+
+Context Manager
+
+@contextmanager
+def cwd(target):
+    """
+    Manage cwd in a pushd/popd fashion.
+
+    Usage:
+
+        with cwd(tmpdir):
+          do something in tmpdir
+    """
+    curdir = os.getcwd()
+    os.chdir(target)
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
+
+Pouziti 
+from packit.utils import cwd
+        with cwd(self.absolute_specfile_dir):
+            self.specfile.download_remote_sources()
+
