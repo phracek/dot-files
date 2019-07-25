@@ -126,3 +126,13 @@ in class
     def abs_path() -> Path:
         if not self._specfile:
             self._specfile = Path(some).joinpath(someanother)
+
+
+------
+MAIN
+------
+
+def main():
+    print(something)
+if __name__ == '__main__':
+    main()
