@@ -1,0 +1,128 @@
+------
+DECORATOR USAGE
+------
+logger = logging.getLogger(__name__)
+
+
+class DecoratorType(Enum):
+    some = "some"
+    local = "local"
+
+
+DECORATOR_HANDLER_MAPPING: Dict[DecoratorType, Type["DecoratorHandler"]] = {}
+
+
+def add_decorator_class(kls: Type["DecoratorHandler"]):
+    DECORATOR_HANDLER_MAPPING[kls.name] = kls
+    return kls
+
+
+class DecoratorHandler:
+    """Generic interface to handle different some_command"""
+
+    name: RunCommandType
+
+    def __init__(self, local_project: LocalProject, config: Config):
+        """
+
+        :param local_project:
+        :param config:
+        """
+        self.local_project = local_project
+        self.config = config
+
+    def some_command(self, command: List[str], return_output: bool = True):
+        """
+        exec a command
+
+        :param command: the command
+        :param return_output: return output from this method if True
+        """
+        raise NotImplementedError("This should be implemented")
+
+    def clean(self):
+        """ clean up the mess after we're done """
+        logger.info("nothing to clean")
+
+@add_decorator_class
+class LocalDecoratorHandler(DecoratorHandler):
+    name = DecoratorType.local
+
+    def some_command(self, command: List[str], return_output=True):
+        """
+        exec a command
+
+        :param command: the command
+        :param return_output: return output from this method if True
+        """
+        return utils.run_command(
+            cmd=command, cwd=self.local_project.working_dir, output=return_output
+        )
+
+
+@add_decorator_class
+class SomeDecoratorHandler(DecoratorHandler):
+    name = DecoratorType.sandcastle
+
+    def __init__(self, local_project: LocalProject, config: Config):
+        """
+        :param local_project:
+        :param config:
+        """
+        # we import here so that packit does not depend on sandcastle (and thus python-kube)
+        from sandcastle.api import Sandcastle, MappedDir
+
+        super().__init__(local_project, config)
+        # SOMETHING
+
+    def some_command(self, command: List[str], return_output=True):
+        """
+        Executes command in a sandbox provided by sandcastle.
+
+        :param command: the command
+        :param return_output: return output from this method if True
+        """
+
+-------
+CWD
+-------
+
+```python
+@contextmanager
+def cwd(target):
+    """
+    Manage cwd in a pushd/popd fashion.
+    Usage:
+        with cwd(tmpdir):
+          do something in tmpdir
+    """
+    curdir = os.getcwd()
+    os.chdir(target)
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
+
+```
+In code
+
+```python
+from XYZ import cwd
+
+def some_function():
+    with cwd(DIR_NAME):
+        some_fnc_to_work_on_dir.
+```
+
+-----
+PROPERTY in class
+-----
+
+in class
+    def __init__():
+        self._specfile = None
+
+    @property
+    def abs_path() -> Path:
+        if not self._specfile:
+            self._specfile = Path(some).joinpath(someanother)
