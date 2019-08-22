@@ -21,6 +21,47 @@ Vagrant.configure("2") do |config|
         pip3 install .
     SHELL
 end
+------------------
+
+FROM fedora:29
+
+ENV LANG=en_US.UTF-8
+# nicer output from the playbook run
+ENV ANSIBLE_STDOUT_CALLBACK=debug
+
+# Install packages first and reuse the cache as much as possible
+RUN dnf install -y vim
+    && dnf clean all
+
+docker build --tag $(NAME) .
+
+--------------------
+
+---
+- name: Install dependencies for packit-service.
+  hosts: all
+  vars:
+    project_dir: "{{ playbook_dir}}/.."
+  tasks:
+  - name: Install all RPM packages needed to run packit-service.
+    dnf:
+      name:
+      - fedpkg
+      - git-core
+      - mod_md
+      - nss_wrapper
+      - origin-clients
+      - python3-GitPython
+      - python3-gnupg
+      - python3-click
+  - name: Install deps from PyPi
+    pip:
+      name: '{{ item }}'
+    with_items:
+    - PyGithub
+    - python-gitlab
+    become: true
+
 
 --------------------
 Deploy packit service
