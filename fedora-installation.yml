@@ -1,0 +1,27 @@
+---
+- name: Install Fedora into Virtual Box
+  hosts: localhost
+  vars:
+    vmtype: "Fedora_64"
+    vmname: "Fedora30_64"
+    vmsize: 20000
+    isofile: ""
+
+  tasks:
+  - name: Create {{ vmsize }} image for Fedora
+    command: VBoxManage createhd --filename {{ vmname }}.vdi --size {{ vmsize }}
+
+  - name: Copy the most appropriate ont into here
+    command: VBoxManage createvm --name {{ vmname }} --ostype {{ vmtype }} --register
+  - name: Add SATA controller
+    command: VBoxManage storagectl {{ vmname }} --name "SATA Controller" --add sata --controller IntelAHCI
+
+  - name: Attach SATA Controller
+    command: VBoxManage storageattach {{ vmname }} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium {{ vmname }}.vdi
+
+  - name: Add IDE controller
+    command: VBoxManage storagectl {{ vmname }} --name "IDE Controller" --add sata --controller IntelAHCI
+
+  - name: Attach IDE Controller
+    command: VBoxManage storageattach {{ vmname }} --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium {{ isofile }}
+

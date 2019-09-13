@@ -201,14 +201,6 @@ check_pre_commit() {
   fi
 }
 export PYTHONDONTWRITEBYTECODE="fuck-yes"
-export LDFLAGS="-L/usr/local/opt/zlib/lib"
-export CPPFLAGS="-I/usr/local/opt/zlib/include"
-
-export PATH="/Users/phracek/.pyenv:$PATH"
-eval "$(pyenv init -)"
-
-export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
-
 GIT_PROMPT_ONLY_IN_REPO=1
 if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
   __GIT_PROMPT_DIR=$(brew --prefix)/opt/bash-git-prompt/share
@@ -269,13 +261,10 @@ alias ocu="~/openshift-cli-3.10.0/oc cluster up"
 alias ocd="~/openshift-cli-3.10.0/oc cluster down"
 alias u="cat ~/work/programming/dot-files/usage"
 alias up="cat ~/work/programming/dot-files/usage_python"
-alias c="cat ~/.zshrc.mac"
-alias vzm="vim ~/.zshrc.mac"
+alias c="cat ~/.zshrc.linux"
+alias vzm="vim ~/.zshrc.linux"
 alias v="vagrant"
 alias vu="vagrant up"
 alias vup="vagrant up --provision"
 alias vrs="vagrant rsync-auto"
 alias vssh="vagrant ssh"
-alias go-md2man="~/work/programming/go-md2man/go-md2man"
-alias readlink="greadlink"
-export PATH="/usr/local/opt/sqlite/bin:/usr/local/opt/coreutils/libexec:$PATH"
