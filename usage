@@ -37,31 +37,6 @@ docker build --tag $(NAME) .
 
 --------------------
 
----
-- name: Install dependencies for packit-service.
-  hosts: all
-  vars:
-    project_dir: "{{ playbook_dir}}/.."
-  tasks:
-  - name: Install all RPM packages needed to run packit-service.
-    dnf:
-      name:
-      - fedpkg
-      - git-core
-      - mod_md
-      - nss_wrapper
-      - origin-clients
-      - python3-GitPython
-      - python3-gnupg
-      - python3-click
-  - name: Install deps from PyPi
-    pip:
-      name: '{{ item }}'
-    with_items:
-    - PyGithub
-    - python-gitlab
-    become: true
-
 
 --------------------
 Deploy packit service
@@ -69,16 +44,3 @@ Deploy packit service
 * oc cluster up
 * DEPLOYMENT=dev make deploy
 * oc rollout latest dc/packit-service
-
----
-ansible how to install from pr and from specific GitHub commit:
-
-- name: Install project from GitHub and from specific PR
-  pip:
-    # PR is named update-ogr-related-code
-    name: git+https://github.com/packit-service/packit.git@update-ogr-related-code
-    executable: pip3
-- name: Install project from GitHub from specific commit
-  pip:
-    name: git+https://github.com/packit-service/packit.git#COMMIT_SHA
-    executable: pip3

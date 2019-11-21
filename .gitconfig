@@ -1,0 +1,49 @@
+[user]
+	mail = phracek@redhat.com
+	name = Petr \"Stone\" Hracek
+	email = phracek@redhat.com
+[color]
+	ui = auto
+
+[alias]
+	ci = commit --verbose -s
+	st = status
+	co = checkout
+	br = branch
+	pu = push
+	a = add
+	d = diff
+	r = reset
+	s = stash
+
+[push]
+	default = matching
+
+[mergetool "mymeld"]
+	cmd = meld --output $MERGED --diff $BASE $LOCAL --auto-merge $LOCAL $BASE $REMOTE --diff $BASE $REMOTE --label "old_sources" --label "merge" --label "new_sources"
+
+[merge]
+	tool = mymeld
+	conflictstyle = diff3
+
+[core]
+	editor = vim
+
+[remote "origin"]
+	# github, pagure
+    fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
+    # gitlab
+    fetch = +refs/merge-requests/*/head:refs/remotes/origin/mr/*
+	fetch = +refs/notes/*:refs/notes/*
+
+[remote "upstream"]
+	# github, pagure
+	fetch = +refs/pull/*/head:refs/remotes/upstream/pr/*
+	# gitlab
+    fetch = +refs/merge-requests/*/head:refs/remotes/upstream/mr/*
+	fetch = +refs/notes/*:refs/remotes/upstream/notes/*
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f

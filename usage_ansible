@@ -1,0 +1,93 @@
+---
+- name: Install dependencies for packit-service.
+  hosts: all
+  vars:
+    project_dir: "{{ playbook_dir}}/.."
+  tasks:
+  - name: Install all RPM packages needed to run packit-service.
+    dnf:
+      name:
+      - fedpkg
+      - git-core
+      - mod_md
+      - nss_wrapper
+      - origin-clients
+      - python3-GitPython
+      - python3-gnupg
+      - python3-click
+  - name: Install deps from PyPi
+    pip:
+      name: '{{ item }}'
+    with_items:
+    - PyGithub
+    - python-gitlab
+    become: true
+
+---
+ansible how to install from pr and from specific GitHub commit:
+
+- name: Install project from GitHub and from specific PR
+  pip:
+    # PR is named update-ogr-related-code
+    name: git+https://github.com/packit-service/packit.git@update-ogr-related-code
+    executable: pip3
+- name: Install project from GitHub from specific commit
+  pip:
+    name: git+https://github.com/packit-service/packit.git#COMMIT_SHA
+    executable: pip3
+
+
+git repository
+
+- name:
+  connection: local
+  git:
+    depth: 1
+    dest: "path"
+    recursive: yes
+    repo: URL
+
+
+command:
+- name:
+  command: command to execute
+  args:
+    chdir:
+  register: return_code
+  ignore_errors: yes
+
+block:
+- name:
+  block:
+    - name: Some task
+      file:
+        path: "create"
+        state: touch
+    - name: Add something
+      copy:
+        content: "conaonsdo"
+        dest: "path"
+  when: return_code.rc != 0
+
+Create directory:
+- name:
+  tempfile:
+    state: directory
+    suffix: sclorg
+  register: tmp_dir
+
+  access tmp_dir.path
+
+Absent directory
+- name: Clean all files
+  file:
+    state: absent
+    path: ~/something
+
+Replace text in file
+- name: Some replacement
+  lineinfile:
+    path: <some path>
+    regexp: <expresion>
+    line: text to replace
+
