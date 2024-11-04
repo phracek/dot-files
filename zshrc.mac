@@ -1,7 +1,6 @@
 set +x
 # User specific aliases and functions
 
-
 gfm() {
   local tmp_opt=""
   [ -n "$2" ] && tmp_opt="--start-number $2"
@@ -49,27 +48,12 @@ check_pre_commit() {
   fi
 }
 
-export PYTHONDONTWRITEBYTECODE="fuck-yes"
-export LDFLAGS="-L/usr/local/opt/zlib/lib"
-export CPPFLAGS="-I/usr/local/opt/zlib/include"
-
-export FEDORA_IP_STACK=10.0.104.79
-export RHEL8_IP_STACK=10.0.107.154
-export FEDORA_NIGHTLY=10.0.98.35
-export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
-
-GIT_PROMPT_ONLY_IN_REPO=1
-if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
-  __GIT_PROMPT_DIR=$(brew --prefix)/opt/bash-git-prompt/share
-  source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
-fi
-
-di_run_delete() {
-	docker rm -f $(docker ps -aq)
+pi_run_delete() {
+	podman rm -f $(podman ps -aq)
 }
 
-di_delete() {
-	docker rmi -f $(docker images -q)
+pi_delete() {
+	podman rmi -f $(podman images -q)
 }
 
 gfu() {
@@ -80,7 +64,6 @@ gfu() {
 	git fetch upstream
 	git rebase upstream/${branch}
 }
-
 
 rsync_tmt() {
     if [[ -z $IP_STACK ]]; then
@@ -99,6 +82,7 @@ rsync_to_openstack_dir_rhel8() {
 	DIR="$1"
 	rsync -avzh --delete "$DIR" root@${RHEL8_IP_STACK}:/root/
 }
+
 rsync_to_openstack_dir() {
 	set -x
 	DIR="$1"
@@ -106,6 +90,12 @@ rsync_to_openstack_dir() {
 	rsync -avzh --delete -e "ssh -i ~/.ssh/openstack" "$DIR" phracek@${FEDORA_IP_STACK}:/home/phracek/work
 	cd $DIR
 	set +x
+}
+rsync_to_mac_fedora() {
+	DIR="$1"
+	cd ../
+	rsync -avzh --delete -e "ssh -i ~/.ssh/openstack" "$DIR" phracek@${MAC_FEDORA}:/home/phracek/
+	cd $DIR
 }
 rsync_to_openstack_dir_nightly() {
 	DIR="$1"
@@ -124,6 +114,7 @@ rsync_to_openstack_rhel8() {
 	cd $HOME/work/scl-containers
 	rsync -avzh --delete "$DIR" root@${RHEL8_IP_STACK}:/root/
 }
+
 rsync_from_openstack() {
 set -x
 	DIR="$1"
@@ -167,6 +158,9 @@ clone_gitlab_repos() {
 	done < "$HOME/work/gitlab.redhat.com/repos_rhel9"
 }
 
+remove_sclorg_projects() {
+	oc projects | grep sclorg | grep -oE 'sclorg-[0-9]*' | xargs oc delete tenantnamespace
+}
 check_gitlab_file() {
 	branch="$1"
 	file_to_check="$2"
@@ -179,22 +173,41 @@ check_gitlab_file() {
 		cd -
 	done < "$HOME/work/gitlab.redhat.com/repos_rhel9"
 }
+
+check_content_gitlab_file() {
+	branch="$1"
+	file_to_check="$2"
+	content_to_check="$3"
+	cd "${HOME}/work/gitlab.redhat.com/${branch}"
+	while read -r repo; do
+		cd $repo
+		if [[ ! -f "$file_to_check" ]]; then
+			echo "File $file_to_check is missing in $repo"
+			cd -
+			continue
+		fi
+		grep -q "$content_to_check" $file_to_check
+		if [[ $? -ne 0 ]]; then
+			echo "Content $content_to_check is missing in file $file_to_check"
+		fi
+		cd -
+	done < "$HOME/work/gitlab.redhat.com/repos_rhel9"
+}
 ocp4_cluster_shutdown() {
 	for node in $(oc get nodes -o jsonpath='{.items[*].metadata.name}'); do oc debug node/${node} -- chroot /host shutdown -h 1; done
 }
 
 ocp4_start_machines() {
-	MACHINE="rn6fr"
-	WORKER_1="gght6"
-	WORKER_2="5vgxj"
-	WORKER_3="r6grm"
+	MACHINE="6p8jr"
+	WORKER_1="x4w6q"
+	WORKER_2="sf7s4"
+	WORKER_3="7tm8z"
 	#openstack --os-token=$OS_PASSWORD server list
 	for machine in core-serv-ocp-$MACHINE-master-0 core-serv-ocp-$MACHINE-master-1 core-serv-ocp-$MACHINE-master-2 core-serv-ocp-$MACHINE-worker-0-$WORKER_1 core-serv-ocp-$MACHINE-worker-0-$WORKER_2 core-serv-ocp-$MACHINE-worker-0-$WORKER_3 ; do
 		echo "Start instance: $machine"
 		openstack --os-token=$OS_PASSWORD server start $machine
 	done
 }
-
 ocp4_check_cluster() {
 	echo "Check 'oc get nodes -l master'"
 	oc get nodes -l node-role.kubernetes.io/master
@@ -228,10 +241,22 @@ oc_login_shared_cluster() {
 	TOKEN=$(cat $HOME/OneDrive/MACOS/sclorg-token)
 	oc login --token=$TOKEN --server=https://api.gpc.ocp-hub.prod.psi.redhat.com:6443
 }
-
 ipstack() {
 	export IP_STACK="$1"
 }
+
+gli () {
+	local gitlog=(git log --graph --color=always --abbrev=7 --format='%C(auto)%h %an %C(blue)%s %C(yellow)%cr')
+	local fzf=(fzf --ansi --no-sort --reverse --tiebreak=index --preview "f() { set -- \$(echo -- \$@ | grep -o '[a-f0-9]\{7\}');
+                [ \$# -eq 0 ] || git show --color=always \$1; }; f {}" --bind "ctrl-m:execute:
+      (grep -o '[a-f0-9]\{7\}' | head -1 |
+       xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
+      {}
+    FZF-EOF" --preview-window=right:60%)
+	$gitlog | $fzf
+}
+
+
 helm_verifier() {
 set -x
 	package=$1
@@ -241,10 +266,20 @@ set -x
 		  verify /charts/$package --kube-insecure-skip-tls-verify=true
 set +x
 }
-# SCLORG aliases
+
+
+GIT_PROMPT_ONLY_IN_REPO=1
+if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
+  __GIT_PROMPT_DIR=$(brew --prefix)/opt/bash-git-prompt/share
+  source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
+fi
+
+
 alias postgresql_rsync="rsync_tmt postgresql-container"
+alias valkey_rsync="rsync_tmt valkey-container"
 alias mariadb_rsync="rsync_tmt mariadb-container"
 alias mysql_rsync="rsync_tmt mysql-container"
+alias base_rsync="rsync_tmt s2i-base-container"
 alias httpd_rsync="rsync_tmt httpd-container"
 alias nginx_rsync="rsync_tmt nginx-container"
 alias nodejs_rsync="rsync_tmt s2i-nodejs-container"
@@ -267,16 +302,16 @@ alias helm_charts_rsync="rsync_tmt ../scl-utils/helm-charts"
 alias ansible_tests_rsync="rsync_tmt ../scl-utils/ansible-tests"
 alias rhcwt_rsync="rsync_to_openstack_dir /Users/phracek/work/Gitlab/rhcwt"
 alias cwt_rsync="rsync_to_openstack_dir /Users/phracek/work/scl-utils/container-workflow-tool"
+alias ci-scripts_rsync="rsync_to_openstack_dir /Users/phracek/work/scl-utils/ci-scripts"
 alias container-ci-suite_rsync="rsync_tmt ../scl-utils/container-ci-suite"
+alias sclorg-tmt-farm="rsync_tmt ../GitLab/sclorg-tmt-plans"
 
 
 # User specific aliases and functions
 alias python="python3.8"
 alias pip="pip3.8"
-alias did="docker rmi -f"
-alias pid="podman rmi -f $(podman images -q)"
-alias ppsid="podman rm -f $(podman ps -aq)"
-alias sen="sen --yolo"
+#alias pid="podman rmi -f $(podman images -q)"
+#alias ppsid="podman rm -f $(podman ps -aq)"
 alias work="cd $HOME/work/"
 alias gpull="git pull --rebase"
 alias gpush="git push"
@@ -285,52 +320,60 @@ alias grc="git rebase --continue"
 alias gl="git log"
 alias gp='git fetch --prune --tags origin; git rebase origin/master'
 alias gb="git branch"
-alias fedora="cd $HOME/work/Fedora"
-alias rhel="cd $HOME/work/RHEL"
+alias p38="pyenv global 3.8.12"
+alias kfedora="kinit phracek@FEDORAPROJECT.ORG"
+alias pi="podman images"
 alias ga="git add -p"
 alias gco="git checkout"
 alias gcob="git checkout -b "
 alias gcom="git checkout master"
-alias pi="docker images"
 alias greset="git reset HEAD"
+alias gammend="git ci --amend"
+alias trigger_commit='git commit --allow-empty -m "trigger commit"'
+alias helm="/Users/phracek/helm-cmd/helm"
+alias connect_tmt="$HOME/work/GitLab/core-services-dockerfiles/connect_tmt.sh"
+alias spy3.8="source $HOME/venv3.8/bin/activate"
+alias openstack="openstack --os-token=$OS_PASSWORD"
+alias update_is="cd imagestreams && $HOME/work/scl-utils/ci-scripts/ocp-stream-generator/ocp_stream_generator/stream_generator.py imagestreams.yaml && cd -"
+alias fzf_preview="fzf --preview 'bat --style=numbers --color=always --line-range :500 {}'"
+alias ssh_gitlab_runner="ssh -i ~/.ssh/openstack fedora@10.0.151.217"
+alias ssh_nightly_builds="ssh -i ~/.ssh/openstack fedora@10.0.98.90"
+alias ssh_phracek_fedora="ssh -i ~/.ssh/openstack phracek@$FEDORA_IP_STACK"
+alias ssh_role_rhu="ssh -i ~/.ssh/rht_classroom.rsa -J cloud-user@148.62.94.248:22022 student@172.25.252.1 -p 53009"
+alias ssh_phracek_rhel8="ssh root@$RHEL8_IP_STACK"
+alias ssh_mac_fedora="ssh -i ~/.ssh/utm_rsa root@192.168.64.2"
+alias ssh_tmt="ssh -i ~/.ssh/tf_key "
+
+
+alias fedora="cd $HOME/work/Fedora"
+alias rhel="cd $HOME/work/RHEL"
 alias sclc="cd $HOME/work/scl-containers"
 alias sclu="cd $HOME/work/scl-utils"
 alias sclb="cd $HOME/work/scl-buildpacks"
 alias gitl="cd $HOME/work/GitLab"
 alias apple="cd $HOME/work/Apple"
-alias gammend="git ci --amend"
-alias specbump="rpmdev-bumpspec *.spec"
 alias work="cd ~/work"
-alias trigger_commit='git commit --allow-empty -m "trigger commit"'
-alias p38="pyenv global 3.8.12"
-alias kfedora="kinit phracek@FEDORAPROJECT.ORG"
 alias u="cat $HOME/dot-files/usage"
 alias up="cat $HOME/dot-files/usage_python"
 alias ug="cat $HOME/.oh-my-zsh/plugins/git/git.plugin.zsh"
 alias c="cat $HOME/dot-files/zshrc.mac"
 alias s="source $HOME/.zshrc"
 alias vzm="vim $HOME/dot-files/zshrc.mac"
-alias v="vagrant"
-alias vu="vagrant up"
-alias vup="vagrant up --provision"
-alias vrs="vagrant rsync-auto"
-alias vssh="vagrant ssh"
-alias pms="podman machine init --cpus=2 --disk-size=30 --memory=8192"
-alias helm="/Users/phracek/helm-cmd/helm"
-alias ssh_gitlab_runner="ssh -i ~/.ssh/openstack fedora@10.0.151.217"
-alias ssh_nightly_builds="ssh -i ~/.ssh/openstack fedora@10.0.98.35"
-alias ssh_phracek_fedora="ssh -i ~/.ssh/openstack phracek@$FEDORA_IP_STACK"
-alias ssh_role_rhu="ssh -i ~/.ssh/rht_classroom.rsa -J cloud-user@148.62.94.248:22022 student@172.25.252.1 -p 53009"
-alias ssh_phracek_rhel8="ssh root@$RHEL8_IP_STACK"
-alias ssh_mac_fedora="ssh -i ~/.ssh/utm_rsa root@192.168.64.2"
-alias ssh_tmt="ssh -i ~/.ssh/tf_key "
-alias go-md2man="~/work/programming/go-md2man/go-md2man"
-alias readlink="greadlink"
 alias template2helm="$HOME/template2helm/template2helm"
-alias connect_tmt="$HOME/work/GitLab/core-services-dockerfiles/connect_tmt.sh"
-alias spy3.8="source $HOME/venv3.8/bin/activate"
-alias openstack="openstack --os-token=$OS_PASSWORD"
+
+export PYTHONDONTWRITEBYTECODE="fuck-yes"
+export LDFLAGS="-L/usr/local/opt/zlib/lib"
+export CPPFLAGS="-I/usr/local/opt/zlib/include"
+
+export FEDORA_IP_STACK=10.0.104.79
+export RHEL8_IP_STACK=10.0.107.154
+export FEDORA_NIGHTLY=10.0.98.90
+export MAC_FEDORA=192.168.64.2
+export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
 export PATH="$HOME/oc-client-4.11.7:/usr/local/opt/sqlite/bin:/usr/local/opt/coreutils/libexec:$PATH"
 export KUBECONFIG=$HOME/ocp4_data/config
 export PATH="/usr/local/go/bin:$PATH"
 
+
+eval "$(zoxide init --cmd cd zsh)"
+alias ll="eza --long"
