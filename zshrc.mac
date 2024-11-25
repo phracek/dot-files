@@ -1,6 +1,18 @@
 set +x
 # User specific aliases and functions
 
+export PYTHONDONTWRITEBYTECODE="fuck-yes"
+export LDFLAGS="-L/usr/local/opt/zlib/lib"
+export CPPFLAGS="-I/usr/local/opt/zlib/include"
+export FEDORA_IP_STACK=10.0.104.79
+export RHEL8_IP_STACK=10.0.107.154
+export FEDORA_NIGHTLY=10.0.98.90
+export MAC_FEDORA=192.168.64.2
+export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
+export PATH="$HOME/oc-client-4.11.7:/usr/local/opt/sqlite/bin:/usr/local/opt/coreutils/libexec:$PATH"
+export KUBECONFIG=$HOME/ocp4_data/config
+export PATH="/usr/local/go/bin:$PATH"
+
 gfm() {
   local tmp_opt=""
   [ -n "$2" ] && tmp_opt="--start-number $2"
@@ -361,18 +373,7 @@ alias s="source $HOME/.zshrc"
 alias vzm="vim $HOME/dot-files/zshrc.mac"
 alias template2helm="$HOME/template2helm/template2helm"
 
-export PYTHONDONTWRITEBYTECODE="fuck-yes"
-export LDFLAGS="-L/usr/local/opt/zlib/lib"
-export CPPFLAGS="-I/usr/local/opt/zlib/include"
 
-export FEDORA_IP_STACK=10.0.104.79
-export RHEL8_IP_STACK=10.0.107.154
-export FEDORA_NIGHTLY=10.0.98.90
-export MAC_FEDORA=192.168.64.2
-export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
-export PATH="$HOME/oc-client-4.11.7:/usr/local/opt/sqlite/bin:/usr/local/opt/coreutils/libexec:$PATH"
-export KUBECONFIG=$HOME/ocp4_data/config
-export PATH="/usr/local/go/bin:$PATH"
 
 
 eval "$(zoxide init --cmd cd zsh)"
