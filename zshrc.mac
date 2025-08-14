@@ -4,14 +4,14 @@ set +x
 export PYTHONDONTWRITEBYTECODE="fuck-yes"
 export LDFLAGS="-L/usr/local/opt/zlib/lib"
 export CPPFLAGS="-I/usr/local/opt/zlib/include"
-export FEDORA_IP_STACK=10.0.104.79
+export FEDORA_IP_STACK=10.0.97.232
 export RHEL8_IP_STACK=10.0.107.154
 export FEDORA_NIGHTLY=10.0.98.90
 export MAC_FEDORA=192.168.64.2
 export PKG_CONFIG_PATH="/usr/local/opt/zlib/lib/pkgconfig"
 export PATH="$HOME/oc-client-4.11.7:/usr/local/opt/sqlite/bin:/usr/local/opt/coreutils/libexec:$PATH"
 export KUBECONFIG=$HOME/ocp4_data/config
-export PATH="/usr/local/go/bin:$PATH"
+export PATH="$HOME/work/Apple/development/flutter/bin:$PATH"
 
 gfm() {
   local tmp_opt=""
@@ -78,6 +78,9 @@ gfu() {
 }
 
 rsync_tmt() {
+    if [[ -f "${HOME}/ip_stack" ]]; then
+        export IP_STACK=$(cat "${HOME}/ip_stack")
+    fi
     if [[ -z $IP_STACK ]]; then
         echo "Define correct IP_STACK value."
         return 1
@@ -255,6 +258,7 @@ oc_login_shared_cluster() {
 }
 ipstack() {
 	export IP_STACK="$1"
+	echo "$IP_STACK" > $HOME/ip_stack
 }
 
 gli () {
@@ -268,6 +272,13 @@ gli () {
 	$gitlog | $fzf
 }
 
+connect_tmt() {
+	if [[ -f "${HOME}/ip_stack" ]]; then
+		export IP_STACK=$(cat "${HOME}/ip_stack")
+	fi
+
+	$HOME/work/GitLab/core-services-dockerfiles/connect_tmt.sh
+}
 
 helm_verifier() {
 set -x
@@ -313,6 +324,7 @@ alias betka_upstream_rsync="rsync_to_openstack_dir /Users/phracek/work/scl-utils
 alias helm_charts_rsync="rsync_tmt ../scl-utils/helm-charts"
 alias ansible_tests_rsync="rsync_tmt ../scl-utils/ansible-tests"
 alias rhcwt_rsync="rsync_to_openstack_dir /Users/phracek/work/Gitlab/rhcwt"
+alias konflux_rsync="rsync_to_openstack_dir /Users/phracek/work/gitlab.redhat.com/konflux"
 alias cwt_rsync="rsync_to_openstack_dir /Users/phracek/work/scl-utils/container-workflow-tool"
 alias ci-scripts_rsync="rsync_to_openstack_dir /Users/phracek/work/scl-utils/ci-scripts"
 alias container-ci-suite_rsync="rsync_tmt ../scl-utils/container-ci-suite"
@@ -329,7 +341,6 @@ alias gpull="git pull --rebase"
 alias gpush="git push"
 alias gpo="git push -f origin"
 alias grc="git rebase --continue"
-alias gl="git log"
 alias gp='git fetch --prune --tags origin; git rebase origin/master'
 alias gb="git branch"
 alias p38="pyenv global 3.8.12"
@@ -343,14 +354,14 @@ alias greset="git reset HEAD"
 alias gammend="git ci --amend"
 alias trigger_commit='git commit --allow-empty -m "trigger commit"'
 alias helm="/Users/phracek/helm-cmd/helm"
-alias connect_tmt="$HOME/work/GitLab/core-services-dockerfiles/connect_tmt.sh"
 alias spy3.8="source $HOME/venv3.8/bin/activate"
-alias openstack="openstack --os-token=$OS_PASSWORD"
+#alias openstack="openstack --os-token=$OS_PASSWORD"
 alias update_is="cd imagestreams && $HOME/work/scl-utils/ci-scripts/ocp-stream-generator/ocp_stream_generator/stream_generator.py imagestreams.yaml && cd -"
 alias fzf_preview="fzf --preview 'bat --style=numbers --color=always --line-range :500 {}'"
 alias ssh_gitlab_runner="ssh -i ~/.ssh/openstack fedora@10.0.151.217"
 alias ssh_nightly_builds="ssh -i ~/.ssh/openstack fedora@10.0.98.90"
 alias ssh_phracek_fedora="ssh -i ~/.ssh/openstack phracek@$FEDORA_IP_STACK"
+alias ssh_fedora_fedora="ssh -i ~/.ssh/openstack fedora@$FEDORA_IP_STACK"
 alias ssh_role_rhu="ssh -i ~/.ssh/rht_classroom.rsa -J cloud-user@148.62.94.248:22022 student@172.25.252.1 -p 53009"
 alias ssh_phracek_rhel8="ssh root@$RHEL8_IP_STACK"
 alias ssh_mac_fedora="ssh -i ~/.ssh/utm_rsa root@192.168.64.2"
